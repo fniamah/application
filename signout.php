@@ -5,6 +5,9 @@ session_destroy();
 
 $cname="SCHOOL NAME";
 $clogo="assets/images/defaults/noimage.jpg";
+
+$conn=new Db_connect;
+$dbcon=$conn->conn();
 $sel = "SELECT cname, clogo FROM company";
 $selrun = $conn->query($dbcon,$sel);
 if($conn->sqlnum($selrun) !=0){
@@ -17,9 +20,12 @@ if(isset($_GET['userid'])){
     $duser = $_GET['userid'];
     //AUDIT TRAIL
     $event="Staff ID, ".$duser." Has Been Signed Out";
-    $aud="INSERT INTO atrails SET stfid='SYSTEM', module='Signed Out', event='$event', ip='$usrIP'";
-    $conn->query($dbcon,$aud);
+    //AUDIT TRAIL
+    $event=date("Y-m-d H:i:s")."Staff ID, ".$duser." Has Been Signed Out".PHP_EOL;
+    logrequest($event,"audit_trails");
 }
+
+$conn->close($dbcon);
 ?>
 
 <!DOCTYPE html>
@@ -28,7 +34,7 @@ if(isset($_GET['userid'])){
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Mednet health College | Signout Page</title>
+    <title><?php echo $cname; ?>| Signout Page</title>
 
     <!-- Global stylesheets -->
     <link href="https://fonts.googleapis.com/css?family=Roboto:400,300,100,500,700,900" rel="stylesheet" type="text/css">
@@ -55,7 +61,7 @@ if(isset($_GET['userid'])){
 
 </head>
 
-<body>
+<body style="background-image: url('assets/images/backgrounds/bgg.jpg'); background-repeat: no-repeat; height: 100%; background-position: center; background-size: cover">
 
 <!-- Main navbar -->
 <!-- Main navbar -->
@@ -85,10 +91,10 @@ if(isset($_GET['userid'])){
 
                 <!-- Advanced login -->
                 <form method="post">
-                    <div class="panel panel-body login-form">
+                    <div class="panel panel-body login-form" style="border: solid #ff0000">
 
                         <div class="text-center">
-                            <div class="border-slate-300 text-slate-300" align="center"><img src="<?php echo $clogo; ?>" class="img-responsive" style="width: 150px; height: 150px;"/></div>
+                            <div class="border-slate-300 text-slate-300" align="center"><img src="<?php echo $clogo; ?>" class="img-responsive" style="width: 100px; height: 100px;"/></div>
                             <h5 class="content-group">You have been signed out <small class="display-block">Enter password to login</small></h5>
                         </div>
                         <?php if($exist=="yes"){?>
@@ -100,14 +106,14 @@ if(isset($_GET['userid'])){
                         <div class="form-group has-feedback has-feedback-left">
                             <input type="hidden" class="form-control" placeholder="Username" name="username" value="<?php echo $duser; ?>" />
                             <div class="form-control-feedback">
-                                <i class="icon-user text-muted" style="color: #852B30;"></i>
+                                <i class="icon-user text-muted" style="color: #ff0000;"></i>
                             </div>
                         </div>
 
                         <div class="form-group has-feedback has-feedback-left">
                             <input type="password" class="form-control" placeholder="Password" name="password">
                             <div class="form-control-feedback">
-                                <i class="icon-lock2 text-muted" style="color: #852B30;"></i>
+                                <i class="icon-lock2 text-muted" style="color: #ff0000;"></i>
                             </div>
                         </div>
 
@@ -127,7 +133,7 @@ if(isset($_GET['userid'])){
                         </div>-->
 
                         <div class="form-group">
-                            <input type="submit" class="btn btn-block" value="Login" name="signin" style="background-color: rgba(133,43,48,0.9); color: #FFF;">
+                            <input type="submit" class="btn btn-block" value="Login" name="signin" style="background-color: #ff0000; color: #FFF;">
                         </div>
                     </div>
                 </form>

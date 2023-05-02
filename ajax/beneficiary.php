@@ -1,83 +1,828 @@
 <?php
 include("../connection/conn.php");
+if(isset($_POST['getClass'])){
+    $conn=new Db_connect;
+    $dbcon=$conn->conn();
+    $cid=$_POST['getClass'];
+    $response="";
+    $sel="SELECT cname FROM classes WHERE id = $cid";
+    $selrun = $conn->query($dbcon,$sel);
+    $seldata = $conn->fetch($selrun);
+    print $seldata['cname'];
+    $conn->close($dbcon);
 
-if(isset($_POST['getStaffInfo'])){
-	$stfid=$_POST['getStaffInfo'];
-	$sel="SELECT * FROM staff_rec WHERE voka_id='$stfid'";
-	$selrun=$conn->query($dbcon,$sel);
-	$seldata=$conn->fetch($selrun);
-	$dimg="";
-	if($seldata['img']==""){
-	    $dimg="assets/images/noimage.png";
-    }else{
-	    $dimg=$seldata['img'];
-    }
-	$response['fname']= $seldata['fst_name'];
-	$response['lname']= $seldata['lst_name'];
-	$response['company']= $seldata['company'];
-	$response['stime']= $seldata['start_time'];
-	$response['position']= $seldata['position'];
-	$response['contact']= $seldata['contact'];
-	$response['email']= $seldata['email'];
-	$response['settings']= $seldata['settings'];
-	$response['tutorial']= $seldata['tutorial'];
-	$response['salcomp']= $seldata['salCompany'];
-	$response['comp']= $seldata['comp'];
-	$response['leave']= $seldata['leavemgt'];
-	$response['medical']= $seldata['medical'];
-	$response['permit']= $seldata['permission'];
-	$response['staff']= $seldata['staff'];
-	$response['attendance']= $seldata['attendance'];
-	$response['status']= $seldata['status'];
-	$response['finance']= $seldata['accounts'];
-	$response['loans']= $seldata['loans'];
-	$response['etime']= $seldata['end_time'];
-	$response['img']= $dimg;
-	$response['supervisor']= $seldata['supervisor'];
-	
-	print json_encode($response);
+}
+if(isset($_POST['getSubject'])){
+    $conn=new Db_connect;
+    $dbcon=$conn->conn();
+    $cid=$_POST['getSubject'];
+    $response="";
+    $sel="SELECT sbj FROM subject WHERE id = $cid";
+    $selrun = $conn->query($dbcon,$sel);
+    $seldata = $conn->fetch($selrun);
+    print $seldata['sbj'];
+    $conn->close($dbcon);
+
 }
 
-if(isset($_POST['expType'])){
-	$exptype=$_POST['expType'];
-	echo "<label>Beneficiary</label>";
-	if($exptype=="other"){
-		echo "<input type='text' name='supplier' class='form-control' required id='supp1' />";
-	}
-	elseif($exptype=="staff"){
-		echo "<select name='supplier' class='form-control' required>
-				<option value=''>Select Staff</option>";
-				
-					$getstf="SELECT voka_id, fst_name, lst_name FROM staff_rec WHERE status IN ('Active','Inactive') ORDER BY fst_name DESC";
-					$getStfRun=$conn->query($dbcon,$getstf);
-					while($stfData=$conn->fetch($getStfRun)){
-					
-					echo "<option value='".$stfData['fst_name']." ".$stfData['lst_name'],"'>".$stfData['fst_name']." ".$stfData['lst_name']."</option>";
-					 } 
-					echo "</select>";
-	}
-	elseif($exptype=="facility"){
-		echo "<select name='supplier' class='form-control' required>
-				<option value=''>Select Facility</option>";
-				
-					$getstf="SELECT name FROM hospital WHERE status = 'Active'";
-					$getStfRun=$conn->query($dbcon,$getstf);
-					while($stfData=$conn->fetch($getStfRun)){
-					
-					echo "<option value='".$stfData['name']."'>".$stfData['name']."</option>";
-					 } 
-					echo "</select>";
-	}
-	else{
-		echo "<input type='text' name='supplier' class='form-control' required id='supp1' readonly placeholder='Select PV Type' />";
-	}
+if(isset($_POST['getDiscount'])){
+    $conn=new Db_connect;
+    $dbcon=$conn->conn();
+    $cid=$_POST['getDiscount'];
+    $sel="SELECT disc_name, percent, status FROM discounts WHERE id = $cid";
+    $selrun = $conn->query($dbcon,$sel);
+    $seldata = $conn->fetch($selrun);
+    $response['discname'] = $seldata['disc_name'];
+    $response['percent'] = $seldata['percent'];
+    $response['status'] = $seldata['status'];
+    print json_encode($response);
+    $conn->close($dbcon);
+
+}
+if(isset($_POST['getFee'])){
+    $conn=new Db_connect;
+    $dbcon=$conn->conn();
+    $cid=$_POST['getFee'];
+    $response="";
+    $sel="SELECT fee_name FROM fees_struct WHERE id = $cid";
+    $selrun = $conn->query($dbcon,$sel);
+    $seldata = $conn->fetch($selrun);
+    print $seldata['fee_name'];
+    $conn->close($dbcon);
+}
+
+if(isset($_POST['checkinvoice'])){
+    $conn=new Db_connect;
+    $dbcon=$conn->conn();
+    $invid=$_POST['checkinvoice'];
+    $response="";
+    $sel="SELECT totalamount FROM student_invoices WHERE invoiceid = '$invid'";
+    $selrun = $conn->query($dbcon,$sel);
+    if($conn->sqlnum($selrun) != 0){
+        print "FOUND";
+    }else{
+        print "NOT FOUND";
+    }
+}
+
+if(isset($_POST['validateStfid'])){
+    $conn=new Db_connect;
+    $dbcon=$conn->conn();
+    $stfid=$_POST['validateStfid'];
+    $sel="SELECT contact FROM staff WHERE stfid = '$stfid'";
+    $selrun = $conn->query($dbcon,$sel);
+    if($conn->sqlnum($selrun) != 0){
+        $seldata = $conn->fetch($selrun);
+        $contact = $seldata['contact'];
+        $response['code'] = 0;
+        $response['msg'] = $contact;
+
+        $otpcode = mt_rand(1000,9999);
+        //UPDATE THE OTP OF THE STAFF
+        $upd = "UPDATE users SET otp = '$otpcode' WHERE userid = '$stfid'";
+        $conn->query($dbcon,$upd);
+
+        sendsms($contact,"Your four digit number is $otpcode. Do not share with anyone.");
+        print json_encode($response);
+    }else{
+        $response['code'] = 1;
+        $response['msg'] = "";
+        print json_encode($response);
+    }
+}
+
+if(isset($_POST['validateOtp'])){
+    $conn=new Db_connect;
+    $dbcon=$conn->conn();
+    $otp=$_POST['validateOtp'];
+    $stfid=$_POST['stfid'];
+    $sel="SELECT status FROM users WHERE userid = '$stfid' AND otp='$otp'";
+    $selrun = $conn->query($dbcon,$sel);
+    if($conn->sqlnum($selrun) != 0){
+        $response['code'] = 0;
+        $response['msg'] = "VERIFIED";
+        print json_encode($response);
+    }
+    else{
+        $response['code'] = 1;
+        $response['msg'] = "NOT VERIFIED";
+        print json_encode($response);
+    }
+}
+
+if(isset($_POST['transferStudents'])){
+    $conn=new Db_connect;
+    $dbcon=$conn->conn();
+    $studentlist=$_POST['transferStudents'];
+    $from=$_POST['from'];
+    $to=$_POST['to'];
+    $obj = explode(",",$studentlist);
+    foreach($obj AS $stdid){
+        //UPDATE THE CLASS OF THE STUDENT
+        $upd="UPDATE students SET class= '$to' WHERE stdid = '$stdid'";
+        $conn->query($dbcon,$upd);
+    }
+
+    print "DONE";
+    $conn->close($dbcon);
+}
+
+if(isset($_POST['recallInvoice'])){
+    $conn=new Db_connect;
+    $dbcon=$conn->conn();
+    $invid=$_POST['recallInvoice'];
+    $response="";
+    $del="DELETE FROM student_invoices WHERE invoiceid='$invid'";
+    $del2="DELETE FROM student_invoice_details WHERE invoiceid='$invid'";
+    $conn->query($dbcon,$del);
+    $conn->query($dbcon,$del2);
+    print "DONE";
+    $conn->close($dbcon);
+
+}
+
+if(isset($_POST['reversePayment'])){
+    $conn=new Db_connect;
+    $dbcon=$conn->conn();
+    $invid=$_POST['reversePayment'];
+    $payid=$_POST['payid'];
+    $amount=$_POST['amount'];
+    $response="";
+    $del="DELETE FROM invoice_payment WHERE id=$payid";
+    $del2="UPDATE student_invoices SET paid= (paid - $amount) WHERE invoiceid='$invid'";
+    $conn->query($dbcon,$del);
+    $conn->query($dbcon,$del2);
+    print "DONE";
+    $conn->close($dbcon);
+
+}
+
+if(isset($_POST['salesdetails'])){
+    $conn=new Db_connect;
+    $dbconnection=$conn->conn();
+    $sid = $_POST['salesdetails'];
+    //GETBTHE SESSION ID
+    $getsess = "SELECT s.pid, s.qty, s.cprice, s.sprice, p.pname  FROM pos_sales s INNER JOIN products_master p ON p.pid = s.pid WHERE s.sid = '$sid'";
+    $getsessrun = $conn->query($dbconnection,$getsess);
+
+    $msg = "<table class='table table-striped'><thead><tr><th>Product Name</th><th>Unit Cost</th><th>Qty</th><th>Total</th></tr></thead><tbody>";
+    $overalltotal = 0 ;
+    while($data = $conn->fetch($getsessrun)){
+        $total = ($data['sprice'] * $data['qty']);
+        $overalltotal = $overalltotal + $total;
+        $msg = $msg . "<tr><td>".$data['pname']."</td><td>".$data['sprice']."</td><td>".$data['qty']."</td><td>".number_format($total, 2, '.', ',')."</td></tr>";
+    }    //$msg = $msg . "<tr><td colspan='4'><p style='color: #ff630d; font-weight: bold; text-align: center; font-size: xx-large'>TOTAL = ".number_format($overalltotal, 2, '.', ',')." </p></td></tr></tbody></table>";
+    $msg = $msg . "<tr><td colspan='5'><p style='color: #ff630d; font-weight: bold; text-align: center; font-size: xx-large'>TOTAL = ".number_format($overalltotal, 2, '.', ',')." </p></td></tr></tbody></table>";
+
+    print $msg;
+    $conn->close($dbconnection);
+}
+
+if(isset($_POST['examTemplate'])){
+    $conn=new Db_connect;
+    $dbcon=$conn->conn();
+    $temp=$_POST['examTemplate'];
+    $cid=$_POST['classid'];
+
+    $sel="UPDATE classes SET template = '$temp' WHERE id=$cid";
+    $conn->query($dbcon,$sel);
+    print "DONE";
+    $conn->close($dbcon);
+
+}
+
+if(isset($_POST['invoiceapproval'])){
+    $conn=new Db_connect;
+    $dbcon=$conn->conn();
+    $invid=$_POST['invoiceapproval'];
+    $stdid=$_POST['stdid'];
+    $class=$_POST['dclass'];
+    $term=$_POST['term'];
+    $discid=$_POST['discid'];
+
+    $admitdate = date("Y-m-d");
+    $yr = date("Y");
+    $dateTime = date("Y-m-d H:i:s");
+    //GET THE TOTAL FEES FOR THE PROGRAM
+    $getfee="SELECT SUM(amount) AS totfees FROM fees_class WHERE cid='$class'";
+    $getfeesrun = $conn->query($dbcon,$getfee);
+    $getfeedata = $conn->fetch($getfeesrun);
+    $fee = $getfeedata['totfees'];
+    $discountamount=0;
+
+    //CREATING DISCOUNT DETAILS
+    $getdisc = getDiscountDetails($discid);
+    $obj = json_decode($getdisc);
+    $msg = $obj->msg;
+    if($msg != "NO"){
+        $name = $obj->name;
+        $percent = $obj->percent;
+        $discountamount =($fee * $percent)/100;
+        $invdisc = "INSERT INTO invoice_discount(invoiceid, discid, percent, amount) VALUES ('$invid','$discid',$percent,$discountamount)";
+        $conn->query($dbcon,$invdisc);
+    }
+
+    //ADD NEW INVOICE AND CREATE INVOICE COMPONENTS FROM FEE STRUCTURE OF THE SELECTED CLASS
+    $inv = "INSERT INTO student_invoices (invoiceid, stdid, invdate, totalamount, paid, status, created_date, yr, classid, term, discount) VALUES ('$invid','$stdid','$admitdate',$fee,0.00,'PENDING','$dateTime','$yr','$class','$term',$discountamount)";
+    $conn->query($dbcon,$inv);
+
+    $ins_det="INSERT INTO student_invoice_details(invoiceid, feeid, feename, amount) SELECT '$invid', c.feeid, s.fee_name, c.amount FROM fees_struct s INNER JOIN fees_class c ON s.id = c.feeid WHERE c.cid = '$class'";
+    $conn->query($dbcon,$ins_det);
+
+
+    print "OK";
+    $conn->close($dbcon);
+}
+
+if(isset($_POST['sendmysms'])){
+    $conn=new Db_connect;
+    $dbcon=$conn->conn();
+    $custom=$_POST['sendmysms'];
+    $rectype=$_POST['type'];
+    $msg=$_POST['msg'];
+    $stfid=$_POST['stfid'];
+
+    if($rectype == "Custom"){
+        $obj = explode(",",$custom);
+        $count = COUNT($obj);
+        for($i = 0; $i < $count ;$i++){
+            $contact = $obj[$i];
+            sendSMS($contact,$msg);
+
+            //Keep Record Of The SMS
+            $memo="INSERT INTO sms SET stfid = '$stfid', contact='$contact', msg='$msg', status='SENT'";
+            $conn->query($dbcon,$memo);
+        }
+    }elseif($rectype == "Staff"){
+        $selstf="SELECT contact FROM staff WHERE status = 'ACTIVE'";
+        $selstfrun = $conn->query($dbcon,$selstf);
+        while($data = $conn->fetch($selstfrun)){
+            $contact = $data['contact'];
+            sendSMS($contact,$msg);
+            //Keep Record Of The SMS
+            $memo="INSERT INTO sms SET stfid = '$stfid', contact='$contact', msg='$msg', status='SENT'";
+            $conn->query($dbcon,$memo);
+        }
+    }
+    else{
+        $selstf="SELECT p.contact FROM student_parents p INNER JOIN students s ON p.stdid = s.stdid WHERE s.status = 'ACTIVE'";
+        $selstfrun = $conn->query($dbcon,$selstf);
+        while($data = $conn->fetch($selstfrun)){
+            $contact = $data['contact'];
+            //Keep Record Of The SMS
+            $memo="INSERT INTO sms SET stfid = '$stfid', contact='$contact', msg='$msg', status='SENT'";
+            $conn->query($dbcon,$memo);
+            sendSMS($contact,$msg);
+        }
+    }
+
+    //Keep LOG Of The Memo
+    $memo="INSERT INTO sms_log SET stfid='$stfid', msg='$msg', status='SENT', recipient = '$rectype'";
+    $conn->query($dbcon,$memo);
+    print "OK";
+
+}
+
+if(isset($_POST['generateExamReport'])){
+    $conn=new Db_connect;
+    $dbcon=$conn->conn();
+    $subjectlist=$_POST['subjectlist'];
+    $classscore=$_POST['classscore'];
+    $examsscore=$_POST['examsscore'];
+    $class=$_POST['class'];
+    $stdid=$_POST['stdid'];
+    $term=$_POST['term'];
+    $year=$_POST['year'];
+
+    //GET THE EXAM TEMPLATE FOR THE CLASS
+    $gettemp = "SELECT template FROM classes WHERE id=$class";
+    $gettemprun = $conn->query($dbcon,$gettemp);
+    $gettempdata = $conn->fetch($gettemprun);
+    $template = $gettempdata['template'];
+
+    //CHECK IF EXAMS RESULT ALREADY EXISTS FOR THE CLASS
+    $chk = "SELECT examid FROM exams_records WHERE stdid = '$stdid' AND class='$class' AND term = '$term'";
+    $chkrun = $conn->query($dbcon,$chk);
+    if($conn->sqlnum($chkrun) == 0){
+        $sbjobj = explode(",",$subjectlist);
+        $clsobj = explode(",",$classscore);
+        $examobj = explode(",",$examsscore);
+
+        //GET THE EXAM ID
+        $examid=date("YmdHis");
+        $datecreate = date("Y-m-d H:i:s");
+
+        $dcount = COUNT($sbjobj);
+        $totclass = 0;
+        $totexams = 0;
+        for($i=0; $i < $dcount; $i++){
+            $sbj = $sbjobj[$i];
+            $cls = $clsobj[$i];
+            $exam = $examobj[$i];
+            $totclass+=$cls;
+            $totexams+=$exam;
+
+            //CHECK IF RECORDS ALREADY EXISTS
+            $chk = "SELECT COUNT(examid) AS totcount FROM exams_details WHERE sbj='$sbj' AND examid = '$examid'";
+            $chkrun=$conn->query($dbcon,$chk);
+            $chkdata=$conn->fetch($chkrun);
+
+            if($chkdata['totcount'] == 0){
+                $ins2="INSERT INTO exams_details (examid, cls_score, exam_score, sbj) VALUES('$examid',$cls,$exam,'$sbj')";
+                $conn->query($dbcon,$ins2);
+            }
+
+
+        }
+
+        $ins = "INSERT INTO exams_records (examid, stdid, class, term, datecreated, status, dyear, exam_score, class_score, template) VALUES ('$examid','$stdid','$class','$term','$datecreate','PENDING','$year',$totexams,$totclass,'$template')";
+        $conn->query($dbcon,$ins);
+
+        $response['errorcode'] = 0;
+        $response['msg'] = $examid;
+        print json_encode($response);
+    }else{
+        $response['errorcode'] = 1;
+        $response['msg'] = "";
+        print json_encode($response);
+    }
+}
+
+if(isset($_POST['getproductselectwh'])){
+    $conn=new Db_connect;
+    $dbconnection=$conn->conn();
+    $msg = "<select class='select2-active form-control' id='selectprod' required><option value=''>--SELECT PRODUCT --</option>";
+    $sel = "SELECT pid,pname, qty FROM products_master WHERE status = 'Active' AND qty > 0 ORDER BY pname ASC";
+    $selrun = $conn->query($dbconnection,$sel);
+    while($data = $conn->fetch($selrun)){
+        $msg = $msg."<option value='".$data['pid']."'>".$data['pname']."&nbsp;&nbsp;<span style='font-weight: bold;'>(".$data['qty'].")</span></option>";
+    }
+    $msg=$msg."</select>";
+    print $msg;
+    $conn->close($dbconnection);
+}
+
+if(isset($_POST['getstock'])){
+    $conn=new Db_connect;
+    $dbconnection=$conn->conn();
+    $pid = $_POST['getstock'];
+    $check = "SELECT qty FROM products_master WHERE pid = '$pid'";
+    $checkrun = $conn->query($dbconnection,$check);
+    $chkdata = $conn->fetch($checkrun);
+    print $chkdata['qty'];
+    $conn->close($dbconnection);
+}
+
+if(isset($_POST['possales'])){
+    $conn=new Db_connect;
+    $dbconnection=$conn->conn();
+    $pid = $_POST['possales'];
+    $user = $_POST['user'];
+    $sid = $_POST['sid'];
+    $qty = $_POST['qty'];
+
+    //CHECK IF PRODUCT HAS ALREADY BEEN ADDED
+    $chkpro = "SELECT * FROM pos_temp WHERE pid = $pid AND sid='$sid'";
+    $chkprorun = $conn->query($dbconnection,$chkpro);
+    if($conn->sqlnum($chkprorun) > 0){
+        $response['msg']= "Product Selectd Has Already Been Added To Your List";
+        $response['errorcode']= "001";
+        print json_encode($response);
+    }else{
+        //CHECK QUANTITY
+        //$chk = "SELECT qty, sprice, cprice FROM products WHERE id = $pid";
+        $chk = "SELECT qty, sprice, cprice, pname FROM products_master WHERE pid = '$pid'";
+        $chkrun = $conn->query($dbconnection,$chk);
+        $chkdata = $conn->fetch($chkrun);
+        $realqty = $chkdata['qty'];
+        $sprice = $chkdata['sprice'];
+        $cprice = $chkdata['cprice'];
+        $pname = $chkdata['pname'];
+        if($qty > $realqty){
+            $response['msg']= "Quantity Specified Is More Than The Stock Value. Current Stock Value Is ".$realqty;
+            $response['errorcode']= "001";
+            $response['total']= "000";
+            print json_encode($response);
+        }else{
+            $ins = "INSERT INTO pos_temp (pid, userid,sid,qty,sprice,cprice) VALUES ($pid,'$user','$sid',$qty,$sprice,$cprice)";
+            $conn->query($dbconnection,$ins);
+            //SELECT the entries
+            $sel = "SELECT p.pname, p.sprice, s.qty, s.pid, s.id  FROM pos_temp s INNER JOIN products_master p ON p.pid = s.pid WHERE s.sid = '$sid'";
+            $selrun = $conn->query($dbconnection, $sel);
+            $msg = "<table class='table table-striped'><thead><tr><th>Product Name</th><th>Unit Cost</th><th>Qty</th><th>Total</th></tr></thead><tbody>";
+            $overalltotal = 0 ;
+            while($data = $conn->fetch($selrun)){
+                $total = ($data['sprice'] * $data['qty']);
+                $overalltotal = $overalltotal + $total;
+                $id = $data['id'];
+                $msg = $msg . "<tr><td>".$data['pname']."</td><td>".$data['sprice']."</td><td>".$data['qty']."</td><td>".number_format($total, 2, '.', ',')."</td><td><a class='btn btn-sm btn-danger' onclick='remsales(".$id.")'><span class='icon icon-trash'></span></a> </td></tr>";
+            }
+            //$msg = $msg . "<tr><td colspan='4'><p style='color: #ff630d; font-weight: bold; text-align: center; font-size: xx-large'>TOTAL = ".number_format($overalltotal, 2, '.', ',')." </p></td></tr></tbody></table>";
+            $msg = $msg . "<tr><td colspan='4'><p style='color: #ff630d; font-weight: bold; text-align: center; font-size: x-large'>TOTAL = ".number_format($overalltotal, 2, '.', ',')." </p></td></tr><tr><td colspan='5'><div align='center'><a class='btn btn-lg btn-success' onclick='checkout()'><span class='icon icon-shopping-cart'></span>CHECK OUT</a></div></td></tr></tbody></table>";
+            $response['msg']= $msg;
+            $response['errorcode']= "000";
+            $response['total']= $overalltotal;
+            print json_encode($response);
+        }
+    }
+    $conn->close($dbconnection);
+}
+
+if(isset($_POST['remsales'])){
+    $conn=new Db_connect;
+    $dbconnection=$conn->conn();
+    $pid = $_POST['remsales'];
+    //GETBTHE SESSION ID
+    $getsess = "SELECT sid FROM pos_temp WHERE id = $pid";
+    $getsessrun = $conn->query($dbconnection,$getsess);
+    $getsessdata = $conn->fetch($getsessrun);
+    $sid = $getsessdata['sid'];
+    //CHECK IF PRODUCT HAS ALREADY BEEN ADDED
+    $chkpro = "DELETE FROM pos_temp WHERE id = $pid";
+    $chkprorun = $conn->query($dbconnection,$chkpro);
+    //SELECT the entries
+    $sel = "SELECT p.pname, p.sprice, s.qty, s.pid, s.id  FROM pos_temp s INNER JOIN products_master p ON p.pid = s.pid WHERE s.sid = '$sid'";
+    $selrun = $conn->query($dbconnection, $sel);
+    $selnum = $conn->sqlnum($selrun);
+    $msg = "";
+    //CHECK IF CART IS EMPTY
+    if($selnum == 0){
+        $msg = "CART IS EMPTY";
+        $response['msg']= $msg;
+        $response['total']= "000";
+    }
+    else{
+        $msg = "<table class='table table-striped'><thead><tr><th>Product Name</th><th>Unit Cost</th><th>Qty</th><th>Total</th></tr></thead><tbody>";
+        $overalltotal = 0 ;
+        while($data = $conn->fetch($selrun)){
+            $total = ($data['sprice'] * $data['qty']);
+            $overalltotal = $overalltotal + $total;
+            $id = $data['id'];
+            $msg = $msg . "<tr><td>".$data['pname']."</td><td>".$data['sprice']."</td><td>".$data['qty']."</td><td>".number_format($total, 2, '.', ',')."</td><td><a class='btn btn-sm btn-danger' onclick='remsales(".$id.")'><span class='icon icon-trash'></span></a> </td></tr>";
+        }
+        //$msg = $msg . "<tr><td colspan='4'><p style='color: #ff630d; font-weight: bold; text-align: center; font-size: xx-large'>TOTAL = ".number_format($overalltotal, 2, '.', ',')." </p></td></tr></tbody></table>";
+        $msg = $msg . "<tr><td colspan='4'><p style='color: #ff630d; font-weight: bold; text-align: center; font-size: xx-large'>TOTAL = ".number_format($overalltotal, 2, '.', ',')." </p></td></tr><tr><td colspan='5'><div align='center'><a class='btn btn-lg btn-success' onclick='checkout()'><span class='icon icon-shopping-cart'></span>CHECK OUT</a></div></td></tr></tbody></table>";
+        $response['msg']= $msg;
+        $response['total']= $overalltotal;
+    }
+
+    print json_encode($response);
+    $conn->close($dbconnection);
+}
+
+if(isset($_POST['checkoutpay'])) {
+    $conn=new Db_connect;
+    $dbconnection=$conn->conn();
+    $sid = $_POST['sid'];
+    $tender = $_POST['tender'];
+    $bal = $_POST['bal'];
+    $total = $_POST['total'];
+    $stfID = $_POST['userid'];
+    $cnamee = mysqli_real_escape_string($dbconnection, $_POST['cname']);
+    $custid = "";
+
+    //CHECK IF THERE ARE PRODUCTS IN THE POS_TEMP TABLE AND DELETE
+    $chk = "SELECT COUNT(*) AS totcount FROM pos_temp WHERE sid='$sid'";
+    $chkrun = $conn->query($dbconnection, $chk);
+    $chkdata = $conn->fetch($chkrun);
+    $dcount = $chkdata['totcount'];
+    if ($dcount != 0) {
+
+        //INSERT PAYMENT DETAILS
+        $ins = "INSERT INTO pos_payment (sid, tend, dtotal, dbal) VALUES ('$sid',$tender, $total, $bal)";
+        $conn->query($dbconnection, $ins);
+
+        //MOVE POS RECORDS
+        $move = "INSERT INTO pos_sales (pid, userid, sid, qty, cprice, sprice, cid) SELECT pid,userid,sid,qty, cprice, sprice,'$custid' FROM pos_temp WHERE sid = '$sid'";
+        $conn->query($dbconnection, $move);
+
+        //GET THE TOTAL SALES AND PROFIT MARGIN
+        $gettot = "SELECT SUM(sprice * qty) AS totsprice, SUM(cprice * qty) AS totcprice FROM pos_temp WHERE sid = '$sid'";
+        $gettotrun = $conn->query($dbconnection, $gettot);
+        $gettotdata = $conn->fetch($gettotrun);
+        $totsprice = $gettotdata['totsprice'];
+        $totcprice = $gettotdata['totcprice'];
+        $profit = $totsprice - $totcprice;
+
+        $ins2 = "INSERT INTO sales_summary(sid, tot_sales, tot_cost, profit, userid, customer, transdate) VALUES ('$sid',$totsprice,$totcprice,$profit,'$stfID','$cnamee','$dateTime')";
+        $conn->query($dbconnection, $ins2);
+
+        //REDUCE THE PRODUCT QUANTITY
+        $sel = "SELECT pid, qty FROM pos_temp WHERE sid = '$sid'";
+        $selrun = $conn->query($dbconnection, $sel);
+        while ($data = $conn->fetch($selrun)) {
+            $pid = $data['pid'];
+            $qty = $data['qty'];
+
+            $upd = "UPDATE products_master SET qty = (qty - $qty) WHERE pid = '$pid'";
+            $conn->query($dbconnection, $upd);
+        }
+
+        //DELETE THE RECORDS FROM THE TEMP TABLE
+        $del = "DELETE FROM pos_temp WHERE sid = '$sid'";
+        $conn->query($dbconnection, $del);
+
+        //GET THE COMPANY DETAILS
+        //GET THE COMPANY INFORMATION / DETAILS
+        $cname="COMPANY NAME";
+        $ctag="";
+        $cmail="";
+        $caddr="";
+        $ccont="";
+        $cloc="";
+
+        $msg = "";
+
+        $getcomp = "SELECT cname, ccont, cmail, cloc, caddr, tag FROM company";
+        $getcomprun = $conn->query($dbconnection,$getcomp);
+        if($conn->sqlnum($getcomprun) != 0){
+            $getcompdata = $conn->fetch($getcomprun);
+            $cname = $getcompdata['cname'];
+            $ccont = $getcompdata['ccont'];
+            $cmail = $getcompdata['cmail'];
+            $cloc = $getcompdata['cloc'];
+            $caddr = $getcompdata['caddr'];
+            $ctag = $getcompdata['tag'];
+        }
+
+        $msg=$msg."<div id='content'>
+                    <div class='container'>
+                        <div class='row' style='font-family: monospace, serif' id='ptable'>
+                            <div class='well col-xs-10 col-sm-10 col-md-6 col-xs-offset-1 col-sm-offset-1 col-md-offset-3'>
+                                <div class='row'>
+                                    <div class='col-xs-6 col-sm-6 col-md-6'>
+                                        <address>
+                                            <strong>".$cname."</strong>
+                                            <br>".$caddr." <br>".$cloc."<br>
+                                            <abbr title='Phone'>P:</abbr> ".$ccont."
+                                        </address>
+                                    </div>
+                                    <div class='col-xs-6 col-sm-6 col-md-6 text-right'>
+                                        <p>
+                                            <em>Date: ".date("Y-m-d H:i:s")."</em>
+                                        </p>
+                                        <p>
+                                            <em>Officer:".getstaff($stfID)."</em>
+                                        </p>
+                                        <p>
+                                            <em>Customer:".strtolower($cnamee)."</em>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class='row'>
+                                    <div class='text-center'>
+                                        <h3>Receipt</h3>
+                                    </div>
+                                    </span>
+                                    <table class='table table-hover'>
+                                        <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Quantity</th>
+                                            <th class='text-center'>Price</th>
+                                            <th class='text-center'>Total</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>";
+        $sel = "SELECT pid, qty, sprice FROM pos_sales WHERE sid = '$sid'";
+        $selrun = $conn->query($dbconnection,$sel);
+        $overalltotal = 0;
+        while($saledata = $conn->fetch($selrun)){
+            $overalltotal+=($saledata['qty'] * $saledata['sprice']);
+            $msg=$msg."<tr>
+                                            <td class='col-md-9'><em>".getproduct($saledata['pid'])."</em></h4></td>
+                                            <td class='col-md-1' style='text-align: center'>".$saledata['qty']." </td>
+                                            <td class='col-md-1 text-center'>".$saledata['sprice']."</td>
+                                            <td class='col-md-1 text-center'>".($saledata['qty'] * $saledata['sprice'])."</td>
+                                            </tr>";
+        }
+        $msg=$msg."<tr>
+                                            <td>   </td>
+                                            <td>   </td>
+                                            <td class='text-right'>
+                                                <p>
+                                                    <strong>Subtotal: </strong>
+                                                </p>
+                                                <p>
+                                                    <strong>Tender: </strong>
+                                                </p>
+                                                <p>
+                                                    <strong>Change: </strong>
+                                                </p>
+                                            </td>
+                                            <td class='text-center'>
+                                                <p>
+                                                    <strong>".number_format($overalltotal,2)."</strong>
+                                                </p>
+                                                <p>
+                                                    <strong>".number_format($tender,2)."</strong>
+                                                </p>
+                                                <p>
+                                                    <strong>".number_format($bal,2)."</strong>
+                                                </p>
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class='row'>
+                                    <div class='col-md-12' style='font-style: italic; font-size: small; text-align: center'>Receipt #: ".strtoupper($sid)."</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class='row' id='bottomprint'>
+                            <div class='col-md-12' align='center'>
+                                <div class='buttons'>
+                                    <a class='btn btn-default btn-lg' href='javascript:void(0);' onclick='javascript:window.print();'><i class='icon-printer'></i> Print</a>
+                                    <a class='btn btn-success btn-lg'  onclick='resetpos()'>Next Order <i class='icon-angle-right'></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    <!-- /.container -->
+                    </div>
+                </div>";
+
+        $ddate = date("Y-m-d");
+        //GET THE TOTAL SALES FOR TODAY
+        $get="SELECT SUM(sprice * qty) AS totprice FROM pos_sales WHERE userid = '$stfID' AND CAST(sales_date AS DATE) = '$ddate'";
+        $getrun=$conn->query($dbconnection,$get);
+        $getdata=$conn->fetch($getrun);
+        $dtotal = 0.00;
+        if($getdata['totprice'] != null || $getdata['totprice'] != ""){
+            $dtotal =$getdata['totprice'];
+        }
+        $response['msg']=$msg;
+        $response['newsprice']=$dtotal;
+        $response['newsid'] = $stfID.date("YmdHis");
+        print json_encode($response);
+    }else{
+        print "NO RECORDS FOUND IN POS_SALES";
+    }
+    $conn->close($dbconnection);
+}
+
+
+if(isset($_POST['loadshopproducts'])){
+    $conn=new Db_connect;
+    $dbconnection=$conn->conn();
+    $sel = "SELECT pname, sprice, pid, qty FROM products_master WHERE status = 'ACTIVE' AND qty > 0";
+    $selrun = $conn->query($dbconnection,$sel);
+
+    $msg="";
+    while($data = $conn->fetch($selrun)){
+        $msg=$msg."<option value='".$data['pid'].':'.$data['pname']."'>".$data['pname']."</option>";
+    }
+    $msg=$msg."</select>";
+    print $msg;
+    $conn->close($dbconnection);
+}
+
+if(isset($_POST['receiveProduct'])){
+    $conn=new Db_connect;
+    $dbconnection=$conn->conn();
+
+    $pid = $_POST['receiveProduct'];
+    $qty = $_POST['qty'];
+    $note = mysqli_real_escape_string($dbconnection,$_POST['note']);
+    $stfid = $_POST['stfid'];
+
+    $getwh = "SELECT qty FROM products_master WHERE pid = '$pid'";
+    $getwhrun = $conn->query($dbconnection,$getwh);
+    $getdata = $conn->fetch($getwhrun);
+    $prevqty = $getdata['qty'];
+
+    $transid = date("YmdHis");
+
+    $move = "INSERT INTO products_master_history (pid, pnameo, spriceo, cpriceo, pname, sprice, cprice, status,qty,qtyo) 
+    SELECT pid, pname,sprice,cprice,pname,sprice,cprice,status,(qty + $qty),qty FROM products_master WHERE pid = '$pid'";
+    $conn->query($dbconnection,$move);
+
+    //UPDATE product quantity
+    $upd = "UPDATE products_master SET qty = (qty + $qty) WHERE pid = '$pid'";
+    $conn->query($dbconnection,$upd);
+
+    $ins = "INSERT INTO transfers (transid,pid, prev, cur, stfid, description) VALUES ('$transid','$pid', $prevqty,$qty,'$stfid','$note')";
+    $conn->query($dbconnection,$ins);
+
+    print "OK";
+
+    $conn->close($dbconnection);
+}
+
+if(isset($_POST['getprod'])){
+    $conn=new Db_connect;
+    $dbconnection=$conn->conn();
+    $pid = $_POST['getprod'];
+    $check = "SELECT * FROM products_master WHERE pid = '$pid'";
+    $checkrun = $conn->query($dbconnection,$check);
+    $checkdata = $conn->fetch($checkrun);
+    $response['pid']= $checkdata['pid'];
+    $response['pname']= $checkdata['pname'];
+    $response['sprice']= $checkdata['sprice'];
+    $response['cprice']= $checkdata['cprice'];
+    $response['status']= $checkdata['status'];
+
+    print json_encode($response);
+    $conn->close($dbconnection);
+}
+
+
+if(isset($_POST['getSubjectList'])){
+    $conn=new Db_connect;
+    $dbconnection=$conn->conn();
+    $cid = $_POST['getSubjectList'];
+    $msg = "<select class='select2-active form-control' name='subjectlist[]' id='sbjlistid' required><option value=''>--SELECT SUBJECT --</option>";
+    $sel = "SELECT id, sbj FROM subject WHERE status='ACTIVE' AND id NOT IN (SELECT sbjid FROM subject_class WHERE cid = $cid) ORDER BY sbj ASC";
+    $selrun = $conn->query($dbconnection,$sel);
+    while($data = $conn->fetch($selrun)){
+        $msg = $msg."<option value='".$data['id']."'>".$data['sbj']."</option>";
+    }
+    $msg=$msg."</select>";
+    print $msg;
+    $conn->close($dbconnection);
+}
+
+if(isset($_POST['getClassSubjects'])){
+    $conn=new Db_connect;
+    $dbconnection=$conn->conn();
+    $cid = $_POST['getClassSubjects'];
+    $msg = "<select class='select2-active form-control' name='subjectlist[]' id='sbjlistid' required>";
+    //$sel = "SELECT id, sbj FROM subject WHERE status='ACTIVE' AND id NOT IN (SELECT sbjid FROM subject_class WHERE cid = $cid) ORDER BY sbj ASC";
+    $sel = "SELECT c.sbjid, s.sbj FROM subject s INNER JOIN subject_class c ON c.sbjid = s.id WHERE c.cid = '$cid' ORDER BY s.sbj ASC";
+    $selrun = $conn->query($dbconnection,$sel);
+    while($data = $conn->fetch($selrun)){
+        $msg = $msg."<option value='".$data['sbjid']."'>".$data['sbj']."</option>";
+    }
+    $msg=$msg."</select>";
+    print $msg;
+    $conn->close($dbconnection);
+}
+
+
+if(isset($_POST['getFeesList'])){
+    $conn=new Db_connect;
+    $dbconnection=$conn->conn();
+    $cid = $_POST['getFeesList'];
+    $msg = "<select class='select2-active form-control' name='feeslist[]' id='feeslistid' required><option value=''>--SELECT FEES COMPONENT --</option>";
+    $sel = "SELECT id, fee_name FROM fees_struct WHERE status='ACTIVE' AND id NOT IN (SELECT feeid FROM fees_class WHERE cid = $cid) ORDER BY fee_name ASC";
+    $selrun = $conn->query($dbconnection,$sel);
+    while($data = $conn->fetch($selrun)){
+        $msg = $msg."<option value='".$data['id']."'>".$data['fee_name']."</option>";
+    }
+    $msg=$msg."</select>";
+    print $msg;
+    $conn->close($dbconnection);
+}
+if(isset($_POST['getFeesListAll'])){
+    $conn=new Db_connect;
+    $dbconnection=$conn->conn();
+    $msg = "<select class='select2-active form-control' name='feeslistAll[]' id='feeslistallid' required><option value=''>--SELECT FEES COMPONENT --</option>";
+    $sel = "SELECT id, fee_name FROM fees_struct WHERE status='ACTIVE' ORDER BY fee_name ASC";
+    $selrun = $conn->query($dbconnection,$sel);
+    while($data = $conn->fetch($selrun)){
+        $msg = $msg."<option value='".$data['id']."'>".$data['fee_name']."</option>";
+    }
+    $msg=$msg."</select>";
+    print $msg;
+    $conn->close($dbconnection);
+}
+
+
+if(isset($_POST['getcompany'])){
+    $conn=new Db_connect;
+    $dbcon=$conn->conn();
+    //GET THE COMPANY INFORMATION / DETAILS
+    $getcomp = "SELECT * FROM company";
+    $getcomprun = $conn->query($dbcon,$getcomp);
+    if($conn->sqlnum($getcomprun) != 0){
+        $getcompdata = $conn->fetch($getcomprun);
+        $response['cname'] = $getcompdata['cname'];
+        $response['ccont'] = $getcompdata['ccont'];
+        $response['cmail'] = $getcompdata['cmail'];
+        $response['cloc'] = $getcompdata['cloc'];
+        $response['caddr'] = $getcompdata['caddr'];
+        $response['clogo'] = $getcompdata['clogo'];
+        $response['tag'] = $getcompdata['tag'];
+    }else{
+        $response['cname'] = "";
+        $response['ccont'] = "";
+        $response['cmail'] = "";
+        $response['cloc'] = "";
+        $response['caddr'] = "";
+        $response['clogo'] = "assets/images/defaults/noimage.jpg";
+        $response['tag'] = "";
+    }
+
+
+    print json_encode($response);
+    $conn->close($dbcon);
 }
 
 //GET THE DESKTOP NOTIFIER
 if(isset($_POST['getNotify'])){
+    $conn=new Db_connect;
+    $dbcon=$conn->conn();
     $vokaId=$_POST['getNotify'];
-
-
     //GET THE TIME DIFFERENCE
     $seltime = "SELECT last_login FROM users WHERE userid = '$vokaId'";
     $seltimerun = $conn->query($dbcon,$seltime);
@@ -172,449 +917,6 @@ if(isset($_POST['getNotify'])){
     $upd="UPDATE message SET status='Inactive' WHERE id=$id";
     $conn->query($dbcon,$upd);
     print json_encode($respond);
-
-}
-
-
-if(isset($_POST['getattachees'])){
-    $id=$_POST['getattachees'];
-    $sel = "SELECT * FROM std_intern WHERE factid = $id AND status = 'Pending'";
-    $selrun = $conn->query($dbcon,$sel);
-    $msg = "<table class='table table-striped table-responsive'><thead><tr><th>Student Name</th><th>Facility</th><th>Start Date</th><th>End Date</th><th>Supervisor</th><th>Contact Of Supervisor</th></tr></thead><tbody>";
-    while($data = $conn->fetch($selrun)){
-        $msg=$msg."<tr><td>".getstudent($data['stdid'])."</td><td>".getfacility($id)."</td><td>".$data['start_date']."</td><td>".$data['end_date']."</td><td>".$data['supervisor']."</td><td>".$data['contact']."</td></tr>";
-    }
-    $msg = $msg."</tbody></table>";
-    print $msg;
-}
-
-if(isset($_POST['getexchrate'])){
-    $currency=$_POST['getexchrate'];
-    $sel="SELECT drate FROM exch_rate WHERE currency='$currency'";
-    $selrun=$conn->query($dbcon,$sel);
-    $seldata=$conn->fetch($selrun);
-    $drate=$seldata['drate'];
-
-    print $drate;
-}
-
-if(isset($_POST['rate'])){
-	$year=$_POST['year'];
-	$rate=$_POST['rate'];
-	$stfid=$_POST['stfid'];
-	//checking the rating percentage
-	$chk="SELECT SUM(rating) AS totrate FROM staff_target WHERE voka_id='$stfid' AND year=$year AND status='Active'";
-	$chkrun=$conn->query($dbcon,$chk);
-	$chkdata=$conn->fetch($chkrun);
-	$exrate=$chkdata['totrate'];
-	$newrate=$exrate + $rate;
-	print $newrate;
-}
-//AUTHENTICATES STAFF REVIEW
-if(isset($_POST['apprformyear'])){
-	$year=$_POST['apprformyear'];
-	$period=$_POST['period'];
-	$voka=$_POST['stfid'];
-	
-	if($period=='mid_yr'){
-		//CHECK IF TARGET HAS BEEN SET FOR STAFF
-		$chkt="SELECT id AS tagcount FROM staff_target WHERE voka_id='$voka' AND year=$year AND status='Active'";
-		$chktrun=$conn->query($dbcon,$chkt);
-		if($conn->sqlnum($chktrun)==0){
-			print "NoTgt";
-		}
-		else{
-			$chk="SELECT * FROM targets WHERE year=$year AND voka_id='$voka' AND mid_yr='yes' AND status IN ('Approved','stfreview')";
-			$chkrun=$conn->query($dbcon,$chk);
-			if($conn->sqlnum($chkrun) == 0){
-				print "OK";
-			}
-			else{
-				print "MidDone";
-			}
-		}
-	}
-	else{
-		//CHECK IF TARGET HAS BEEN SET FOR STAFF
-		$chkt="SELECT id AS tagcount FROM staff_target WHERE voka_id='$voka' AND year=$year AND status='Active'";
-		$chktrun=$conn->query($dbcon,$chkt);
-		if($conn->sqlnum($chktrun)==0){
-			print "NoTgt";
-		}
-		else{
-			//check if mid year review has been done
-		$mid="SELECT * FROM targets WHERE mid_yr='yes' AND end_yr='no' AND year='$year' AND status='Approved' AND status2='Accepted' AND voka_id='$voka'";
-		$midrun=$conn->query($dbcon,$mid);
-			if($conn->sqlnum($midrun) != 0){//mid year review has been done
-				print "OK";
-			}
-			else{
-				print "NomYear";
-			}
-		}
-	}
-}
-
-if(isset($_POST['supappryear'])){
-	$year=$_POST['supappryear'];
-	$period=$_POST['period'];
-	$voka=$_POST['stfid'];
-
-
-    //check if target is set
-    $tgtchk="SELECT * FROM targets WHERE year='$year' AND voka_id='$voka'";
-    $tgtrun=$conn->query($dbcon,$tgtchk);
-
-    if($conn->sqlnum($tgtrun) == 0){
-        print "NoTgt";
-    }else
-    {
-        if ($period == 'mid_yr') {
-            $chkend = "SELECT * FROM targets WHERE voka_id='$voka' AND year=$year AND status ='stfreview'";//CHECK IF MID YEAR APPRAISAL HAS BEEN DONE
-            $chkendrun = $conn->query($dbcon, $chkend);
-            if ($conn->sqlnum($chkendrun) == 0) {//mid year review is not ready
-                print "no_mid";
-            }
-            else{
-                print "mid";
-            }
-
-        }
-        else{
-            $chkend = "SELECT * FROM targets WHERE voka_id='$voka' AND year=$year AND mid_yr='yes'";//CHECK IF MID YEAR APPRAISAL HAS BEEN DONE
-            $chkendrun = $conn->query($dbcon, $chkend);
-            if ($conn->sqlnum($chkendrun) == 0) {//mid year review is not done
-                print "nomidDone";
-            }else{
-                print "end";
-            }
-        }
-    }
-}
-
-if(isset($_POST['companyid'])){
-	$company=$_POST['companyid'];
-	echo "<td><label>Staff:</label><select name='staff' class='form-control select' required onchange='tuttargets(this.value)'>
-			<option value='All'>All</option>";
-	$sel="SELECT voka_id, fst_name, lst_name FROM staff_rec WHERE company='$company' ORDER BY fst_name DESC";
-	$selrun=$conn->query($dbcon,$sel);
-	while($items=$conn->fetch($selrun)){
-		echo "<option value='".$items['voka_id']."'>".$items['fst_name'].$items['lst_name']."</option>";
-	}
-	echo "</select></td>";
-}
-
-if(isset($_POST['companytargetdate'])){
-	$ddate=$_POST['companytargetdate'];
-	$sel="SELECT * FROM staff_rec WHERE company='$company' ORDER BY fst_name DESC";
-	$selrun=$conn->query($dbcon,$sel);
-}
-
-if(isset($_POST['checkapprstat'])){
-    //CHECK IF STAFF TARGET HAS ALREADY BEEN SET FOR THE YEAR
-	$year=$_POST['checkapprstat'];
-	$voka=$_POST['voka'];
-	$sel="SELECT * FROM staff_target WHERE year='$year' AND voka_id='$voka'";
-	$selrun=$conn->query($dbcon,$sel);
-	if($conn->sqlnum($selrun)==0){
-		print "yes";
-	}
-	else{
-		print "no";
-	}
-}
-
-if(isset($_POST['getLeave'])) {
-    $lvid = $_POST['getLeave'];
-    $sel="SELECT * FROM staff_leave WHERE leaveID='$lvid'";
-    $selrun=$conn->query($dbcon,$sel);
-    $selData=$conn->fetch($selrun);
-
-    $respond['repby']=checkName($selData['replacedBy']);
-    $respond['app']=checkName($selData['voka_id']);
-    $respond['appid']=$selData['voka_id'];
-    $respond['ltype']=$selData['leaveType'];
-    $respond['sdate']=date("d, M, Y", strtotime(date($selData['startDate'])));
-    $respond['edate']=date("d, M, Y", strtotime(date($selData['endDate'])));
-    $respond['rdate']=date("d, M, Y", strtotime(date($selData['resumedDate'])));
-    $respond['note']=$selData['note'];
-    $respond['status']=$selData['status'];
-    $respond['ldays']=$selData['leavesTaken'];
-    $respond['doreg']=date("d, M, Y H:i:s A", strtotime(date($selData['doreg'])));
-
-    print json_encode($respond);
-}
-
-if(isset($_POST['getList'])) {
-    $lvid = $_POST['getList'];
-    if($lvid=="dept"){
-        echo "<td>Select Department</td><td><select class='form-control' name='reclist'>";
-        $selcom="SELECT name FROM company WHERE status='Active' ORDER BY name DESC";
-        $selcomrun=$conn->query($dbcon,$selcom);
-        while($compdata=$conn->fetch($selcomrun)){
-            echo "<option value='".$compdata['name']."'>".$compdata['name']."</option>";
-        }
-        echo "</select></td>";
-    }
-    elseif($lvid=="Individual"){
-        echo "<td>Select Staff</td><td><table>";
-        $selcom="SELECT voka_id, fst_name, lst_name FROM staff_rec WHERE status !='Detached' ORDER BY fst_name DESC";
-        $selcomrun=$conn->query($dbcon,$selcom);
-        while($compdata=$conn->fetch($selcomrun)){
-            echo "<tr><td><input type='checkbox' class='checkbox' name='reclist[]' value='".$compdata['voka_id']."' /></td><td>".$compdata['fst_name']." ".$compdata['lst_name']."</td></tr>";
-        }
-        echo "</table></td>";
-    }else{
-        echo "<input type='hidden' name='reclist' value='All' />";
-    }
-}
-
-//CHEQUE LOG
-if(isset($_POST['checknum'])) {
-    $chk=$_POST['checknum'];
-
-    //check if check number exists
-    $sel="SELECT * FROM pv_detail WHERE chekno='$chk' AND status='Complete'";
-    $selrun=$conn->query($dbcon,$sel);
-    $seldata=$conn->fetch($selrun);
-    $tot=$seldata['total'];
-    $tax=$seldata['taxamount'];
-    $diff=0;
-    if($tax < 0){
-        $diff=$tot + $tax;
-    }else{
-        $diff=$tot - $tax;
-    }
-    if($conn->sqlnum($selrun)==0){
-        echo "NO";
-    }else{
-        //CHECK IF CHEQUE HAS ALREADY BEEN ISSUED OUT
-        $check="SELECT id FROM cheque WHERE chekno='$chk'";
-        $checkrun=$conn->query($dbcon,$check);
-        if($conn->sqlnum($checkrun)==0) {
-            echo "<div class='panel panel-body login-form'>
-                <h5 class='content-group text-center'><small class='display-block'>PV Details Of Check Number " . $chk . "</small></h5>
-                <div class='row'>
-                    <div class='col-md-12'>
-                        <table class='table table-striped'><tr><th>PV #</th><td>" . $seldata['pv_id'] . "</td></tr><tr><th>Supplier</th><td>" . $seldata['supplier'] . "</td></tr><tr><th>Total Amount</th><td>" . $tot . "</td></tr><tr><th>Total Tax</th><td>" . $tax . "</td></tr><tr><th>Net Amount</th><td>" . $diff . " " . $seldata['curr'] . "</td></tr></table>
-                    </div>
-                </div>
-            </div>";
-        }
-        else{
-            echo "exists";
-        }
-    }
-}
-
-if(isset($_POST["type"])){
-    $param = (object)$_POST;
-    $chequeNum = $param->checknumber;
-    $template = $param->template;
-    $date = date("d m Y", strtotime($param->date));
-
-    //check if check number exists
-    $sel="SELECT * FROM `pv_detail` WHERE chekno='$chequeNum' AND status='Complete' AND issued = 'no'";
-    $chequeAvailable = $conn->query($dbcon,$sel);
-
-    if($conn->sqlnum($chequeAvailable) < 1) {
-        echo json_encode(array(
-            "success" => false,
-            "message" => "The check number does not exist or it has been issued out",
-        ));
-        exit();
-    }
-    else{
-        $chequeData = $conn->fetch($chequeAvailable);
-        $supplier = $chequeData['supplier'];
-        $tot=$chequeData['total'];
-        $tax=$chequeData['taxamount'];
-        $diff=0;
-        if($tax < 0){
-            $diff=$tot + $tax;
-        }else{
-            $diff=$tot - $tax;
-        }
-
-        $bankCode = $chequeData['bankCode'];
-        $company = $chequeData['company'];
-        $company = $chequeData['company'];
-        $img="background: url('assets/images/hfc.jpg')";
-
-        $display="<div class='row' style='".$img."'><div class='col-md-12'> ".
-
-                 "</div></div>";
-
-        echo json_encode(array(
-            "success" => true,
-            "amount" => $diff,
-            "supplier" => $supplier,
-            "chequetype" => $template,
-            "date" => $date,
-            "display" => $display
-
-        ));
-    }
-
-}
-
-//CAREER EDIT API
-if(isset($_POST['editcareer'])){
-    $id=$_POST['editcareer'];
-    $sel="SELECT * FROM careers WHERE id=$id";
-    $selrun=$conn->query($dbcon,$sel);
-    $seldata=$conn->fetch($selrun);
-    $result['title']=$seldata['title'];
-    $result['company']=$seldata['company'];
-    $result['description']=$seldata['description'];
-    $result['deadline']=$seldata['deadline'];
-    $result['type']=$seldata['jobtype'];
-
-    print json_encode($result);
-}
-
-if(isset($_POST['searchcrit'])){
-    $crit=$_POST['searchcrit'];
-    $val=$_POST['searchval'];
-    $sel="";
-    $response="";
-    if($crit=="phone"){
-        $sel="SELECT * FROM visitors WHERE phone LIKE '%$val%' AND status='active'";
-    }else{
-        $sel="SELECT * FROM visitors WHERE name LIKE '%$val%' AND status='active'";
-    }
-    $selrun=$conn->query($dbcon,$sel);
-    if($conn->sqlnum($selrun)==0){
-        print "No Records Found";
-    }else{
-        $count=0;
-        print "<table class='table table-bordered table-striped'><thead style='color: #8e080d; background-color: #b8dbe6'><td>#</td><td>Visitor</td><td>Phone Number</td><td>Action</td></thead><tbody>";
-        while($rows=$conn->fetch($selrun)){
-            $count++;
-            print "<tr><td>".$count."</td><td>".$rows['name']."</td><td>".$rows['phone']."</td><td><button class='btn btn-sm btn-primary' onclick='addlodge(".$rows['id'].")'>Lodge Visitor</button> </td></tr>";
-        }
-        print "</tbody></table>";
-    }
-}
-
-if(isset($_POST['dailyvisits'])){
-    $sel="SELECT * FROM visits WHERE timestamp BETWEEN '".date('Y-m-d 00:00:00')."' AND '".date("Y-m-d 23:59:59")."'";
-    $selrun=$conn->query($dbcon,$sel);
-    echo "<div class='row'><div class='col-md-6' style='margin-bottom: 1%'><h5 class='text-left'><small class='display-block'>VISITORS LODGED ".date('l, d M, Y')."</small></h5> </div><div class='col-md-6' align='right'><button class='btn btn-lg btn-primary' onclick='addvisitor()'>ADD VISITOR</button></div> </div> <table class='table table-bordered table-striped'><thead style='color: #FD550F; background-color: #f3ffb0'><td>#</td><td>Visitor</td><td>Phone Number</td><td>Purpose</td><td>Host</td><td>Time In</td><td>Time Out</td><td>Signature</td><td>Status</td><td>Administrator</td><td>Action</td></thead><tbody>";
-    if($conn->sqlnum($selrun)==0){
-        echo "<tr><td colspan='9'>NO RECORDS AVAILABLE</td></tr>";
-    }else{
-        $count=0;
-        while($rows=$conn->fetch($selrun)){
-            $count++;
-            $status=$rows['status'];
-            $id=$rows['visitorid'];
-            //GET THE BASIC DETAILS OF THE STAFF
-            $get="SELECT * FROM visitors WHERE visitorid='$id'";
-            $getrun=$conn->query($dbcon,$get);
-            $getdata=$conn->fetch($getrun);
-            $btn="";
-            if($status !="signed out"){
-                $btn="<button class='btn btn-sm btn-primary' onclick='signout(".$rows['id'].")'>Sign Out</button> ";
-            }
-            print "<tr><td>".$count."</td><td>".$getdata['name']."</td><td>".$getdata['phone']."</td><td>".$rows['purpose']."</td><td>".checkName($rows['voka_id'])."</td><td>".$rows['intime']."</td><td>".$rows['outtime']."</td><td><img src='".$rows['img']."' class='img-responsive' width='50%'/></td><td>".$rows['status']."</td><td>".checkName($rows['user'])."</td><td>".$btn."</td></tr>";
-        }
-    }
-    echo "</tbody></table>";
-}
-
-if(isset($_POST['signout'])){
-    $id=$_POST['signout'];
-    $otime=date("H:i:s");
-    $upd="UPDATE visits SET status='signed out', outtime='$otime' WHERE id=$id";
-    $conn->query($dbcon,$upd);
-    $sel="SELECT * FROM visits WHERE timestamp BETWEEN '".date('Y-m-d 00:00:00')."' AND '".date("Y-m-d 23:59:59")."'";
-    $selrun=$conn->query($dbcon,$sel);
-    echo "<div class='row'><div class='col-md-6' style='margin-bottom: 1%'><h5 class='text-left'><small class='display-block'>VISITORS LODGED ".date('l, d M, Y')."</small></h5> </div><div class='col-md-6' align='right'><button class='btn btn-lg btn-primary' onclick='addvisitor()'>ADD VISITOR</button></div> </div> <table class='table table-bordered table-striped'><thead style='color: #FD550F; background-color: #f3ffb0'><td>#</td><td>Visitor</td><td>Phone Number</td><td>Purpose</td><td>Host</td><td>Time In</td><td>Time Out</td><td>Signature</td><td>Status</td><td>Administrator</td><td>Action</td></thead><tbody>";
-    if($conn->sqlnum($selrun)==0){
-        echo "<tr><td colspan='9'>NO RECORDS AVAILABLE</td></tr>";
-    }else{
-        $count=0;
-        while($rows=$conn->fetch($selrun)){
-            $count++;
-            $status=$rows['status'];
-            $id=$rows['visitorid'];
-            //GET THE BASIC DETAILS OF THE STAFF
-            $get="SELECT * FROM visitors WHERE visitorid='$id'";
-            $getrun=$conn->query($dbcon,$get);
-            $getdata=$conn->fetch($getrun);
-            $btn="";
-            if($status !="signed out"){
-                $btn="<button class='btn btn-sm btn-primary' onclick='signout(".$rows['id'].")'>Sign Out</button> ";
-            }
-            print "<tr><td>".$count."</td><td>".$getdata['name']."</td><td>".$getdata['phone']."</td><td>".$rows['purpose']."</td><td>".checkName($rows['voka_id'])."</td><td>".$rows['intime']."</td><td>".$rows['outtime']."</td><td><img src='".$rows['img']."' class='img-responsive' width='50%'/></td><td>".$rows['status']."</td><td>".checkName($rows['user'])."</td><td>".$btn."</td></tr>";
-        }
-    }
-    echo "</tbody></table>";
-}
-
-if(isset($_POST['getvisitor'])){
-    $id=$_POST['getvisitor'];
-    //GET THE VISITOR BASIC RECORDS
-    $sel="SELECT * FROM visitors WHERE id=$id";
-    $selrun=$conn->query($dbcon,$sel);
-    $seldata=$conn->fetch($selrun);
-
-    $result['name']=$seldata['name'];
-    $result['phone']=$seldata['phone'];
-    $result['visid']=$seldata['visitorid'];
-
-    print json_encode($result);
-}
-
-if(isset($_POST['getuat'])){
-    $id=$_POST['getuat'];
-    //GET THE VISITOR BASIC RECORDS
-    $sel="SELECT * FROM test_proj WHERE pj_id='$id'";
-    $selrun=$conn->query($dbcon,$sel);
-    $seldata=$conn->fetch($selrun);
-
-    $result['title']=$seldata['title'];
-    $result['desc']=$seldata['descr'];
-
-    print json_encode($result);
-}
-
-if(isset($_POST['getuatfback'])){
-    $id=$_POST['getuatfback'];
-    //GET THE VISITOR BASIC RECORDS
-    $sel = "SELECT M.title, M.descr, S.fback, S.rev_date FROM test_proj M INNER JOIN proj_st_test S ON M.pj_id = S.pj_id WHERE S.pj_id='$id' AND S.status='DONE'";
-    $selrun=$conn->query($dbcon,$sel);
-    $seldata=$conn->fetch($selrun);
-
-    $result['title']=$seldata['title'];
-    $result['desc']=$seldata['descr'];
-    $result['fback']=$seldata['fback'];
-
-    print json_encode($result);
-}
-
-if(isset($_POST['updatedob'])){
-    $dob=$_POST['updatedob'];
-    $voka=$_POST['voka'];
-    //GET THE VISITOR BASIC RECORDS
-    $upd = "UPDATE biodata SET dob = '$dob' WHERE voka_id='$voka'";
-    if($conn->query($dbcon,$upd)){
-        print "OK";
-    }
-    else{
-        print "NOT";
-    }
-}
-
-if(isset($_POST['getBday'])){
-    $vokaId = $_POST['getBday'];
-    $ddate=date("Y-m-d");
-    //CHECK IF STAFF HAS A BDAY
-    $sel="SELECT tone FROM bdayrec WHERE voka_id='$vokaId' AND bdate = '$ddate'";
-    $selrun=$conn->query($dbcon,$sel);
-    $seldata=$conn->fetch($selrun);
-
-    print $seldata['tone'];
+    $conn->close($dbcon);
 }
 ?>

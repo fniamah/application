@@ -1,1 +1,0 @@
-"C:\Xampp\php\php.exe" -f "C:\xampp\htdocs\hwemudua\includes\dailyrun.php"
